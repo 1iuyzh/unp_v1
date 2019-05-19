@@ -69,10 +69,76 @@ int main(int argc, char **argv) {
     // I/O复用,进程阻塞于select或poll,当数据报套接字可读时返回.类似于多线程中使用阻塞式I/O
     // 信号驱动式I/O,让内核在描述符就绪时发送SIGIO信号进行通知,需要开启套接字的信号驱动式I/O功能
     // 异步I/O,信号驱动I/O是内核通知何时可以启动一个I/O操作,异步I/O是内核通知我们I/O操作何时完成
+}
 
-    // 客户阻塞于标准输入期间,如果服务器进程被杀死,客户进程将看不到EOF
-    // select告知内核在哪些描述符发生可读,可写或有异常时返回
-    // select返回后使用FD_ISSET测试fd_set数据类型中的描述符,描述符集中任何与未就绪描述符对应的位返回时清0
-    // select常见编程错误:忘了对最大描述符加1;忘了描述符集是值-结果参数
+// 使用单进程和select的TCP服务器程序
+int main(int argc, char **argv) {
+    int i, maxi, maxfd, listenfd, connfd, sockfd;
+    int nready, client[FD_SETSIZE];
+    ssize_t n;
+    fd_set rset, allset;
+    char buf[MAXLINE];
+    socklen_t clilen;
+    struct sockaddr_in cliaddr, servaddr;
 
+    listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERV_PORT);
+
+    Bind(listenfd, (SA *)&servaddr, sizeof(servaddr));
+
+    Listen(listenfd, LISTENQ);
+
+    maxfd = listenfd;
+    maxi = -1;
+    for (int i = 0; i < FD_SETSIZE; i++)
+        client[i] = -1;
+    FD_ZERO(&allset);
+    FD_SET(listenfd, &allset);
+
+    for (;;) {
+        rset = allset;
+        nready = Select(maxfd + 1; &rset, NULL, NULL, NULL);
+
+        if (FD_ISSET(listenfd, &rset)) {
+            clilen = sizeof(cliaddr);
+            connfd = Accept(listenfd, (SA *)&cliaddr, &clilen);
+            
+            for (int i = 0; i < FD_SETSIZE; i++) {
+                if (client[i] < 0) {
+                    client[i] = connfd;
+                    break;
+                }
+            }
+            if (i == FD_SETSIZE)
+                err_quit(...);
+            
+            FD_SET(connfd, &allset);
+            if (connfd > maxfd)
+                maxfd = connfd;
+            if (i > max)
+                max = i;
+            if (--nready <= 0)
+                continue;
+        }
+
+        for (i = 0; i <= max; i++) {
+            if ((sockfd = client[i]) < 0)
+                continue;
+            if (FD_ISSET(sockfd, &rset)) {
+                if ((n = Read(sockfd, buf, MAXLINE)) == 0) {
+                    Close(sockfd);
+                    FD_CLR(sockfd, &allset);
+                    client[i] = -1;
+                }
+                else
+                    Writen(sockfd, buf, n);
+                if (--nready <= 0)
+                    break;
+            }
+        }
+    }
 }

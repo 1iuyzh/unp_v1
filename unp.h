@@ -57,6 +57,13 @@ int FD_ISSET(int fd, fd_set *fdset); // is the bit for fd on in fdset
 // select函数原型,返回已就绪总位数
 int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout);
 
+// shutdown不减引用计数就可以激发TCP的正常连接终止序列
+// close会终止读和写两个方向的数据传送
+// howto=SHUT_RD,关闭连接读一半,套接字中不再有数据可接收,套接字接收缓冲区中的现有数据都被丢弃
+// howto=SHUT_WR,关闭连接写一半,半关闭half-close,当前留在套接字发送缓冲区的数据将被发送掉,后跟TCP连接终止序列
+// howto=SHUT_RDWR,连接的读半部和写半部都关闭
+int shutdown(int sockfd, int howto);
+
 /* 许多网络入侵是由黑客通过发送数据,导致服务器对sprintf的调用使其缓冲区溢出而发生的
  * 必须小心使用的函数还有gets,strcat和strcpy,通常应分别改为调用fgets,strncat和strncpy
  * 更好的替代函数是后来才引入的strlcat和strlcpy,它们确保结果是正确终止的字符串 */
@@ -83,3 +90,11 @@ int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, co
 /* Chap.6
  * I/O模型
  * select函数 描述符集就绪条件
+ * str_cli函数修订版 批量输入 shutdown函数
+ * pselect函数 poll函数 */
+
+/* Chap.16
+ * 非阻塞I/O */
+
+/* Chap.26
+ * 线程 */
