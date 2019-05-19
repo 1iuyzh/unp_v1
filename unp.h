@@ -1,6 +1,5 @@
 #define SA struct sockaddr
 
-/* unix */
 struct in_addr {
     in_addr_t s_addr; // 32位IPv4地址 网络字节序
 };
@@ -26,7 +25,6 @@ uint32_t htonl(uint32_t host32bitvalue);
 uint16_t ntohs(uint16_t net16bitvalue);
 uint32_t ntohl(uint32_t net32bitvalue);
 
-/* unp */
 // 只要一个Unix函数中有错误发生,全局变量errno就被置为一个指明该错误类型的正值<sys/errno.h>,函数一般返回-1
 // err_sys查看errno的值并输出相应的错误消息
 void err_sys(char *);
@@ -40,6 +38,24 @@ int Socket(int family, int type, int protocol) {
     }
     return (n);
 }
+
+// SIGCHLD信号处理函数
+void sig_chld(int signo) {
+    pid_t pid;
+    int stat;
+    while ((pid = waitpid(-1, &stat, WNOHANG)) > 0) // WNOHANG选项告知waitpid在有尚未终止的子进程运行时不要阻塞
+        printf(...);
+    return;
+}
+
+// fdset实现
+void FD_ZERO(fd_set *fdset); // clear all bits in fdset
+void FD_SET(int fd, fd_set *fdset); // turn on the bit for fd in fdset
+void FD_CLR(int fd, fd_set *fdset); // turn off the bit for fd in fdset
+int FD_ISSET(int fd, fd_set *fdset); // is the bit for fd on in fdset
+
+// select函数原型,返回已就绪总位数
+int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout);
 
 /* 许多网络入侵是由黑客通过发送数据,导致服务器对sprintf的调用使其缓冲区溢出而发生的
  * 必须小心使用的函数还有gets,strcat和strcpy,通常应分别改为调用fgets,strncat和strncpy
@@ -61,5 +77,9 @@ int Socket(int family, int type, int protocol) {
 /* Chap.5
  * TCP回射程序
  * 正常启动 正常终止
- * POSIX信号处理 处理SIGCHLD信号 wait和waitpid函数
+ * POSIX信号处理 signal函数 SIGCHLD信号 wait和waitpid函数
  * accept前连接终止 服务器进程终止 SIGPIPE信号 服务器主机崩溃 服务器主机崩溃后重启 服务器主机关闭 */
+
+/* Chap.6
+ * I/O模型
+ * select函数 描述符集就绪条件

@@ -32,6 +32,36 @@ int main(int argc, char **argv) {
     while ((n = read(sockfd, recvline, MAXLINE)) > 0) {
         recvline[n] = 0;
     }
+
+    // 回射程序
+    str_cli(stdin, sockfd);
+
     // Unix在一个进程终止时总是关闭该进程所有打开的描述符
     exit(0);
+}
+
+// 使用select的str_cli函数
+void str_cli(FILE *fd, int sockfd) {
+    int maxfdp1;
+    fd_set rset;
+    char sendline[MAXLINE], recvline[MAXLINE];
+
+    FD_ZERO(&rset);
+    for (;;) {
+        FD_SET(fileno(fp), &rset);
+        FD_SET(sockfd, &rset);
+        maxfdp1 = max(fileno(fp), sockfd) + 1;
+        Select(maxfdp1, &rset, NULL, NULL, NULL);
+        if (FD_ISSET(sockfd, &rset)) { // TCP套接字可读
+            if (Readline(sockfd, recvline, MAXLINE) == 0) // 对端TCP发送一个FIN(对端进程终止),read返回0
+                err_quit(...);
+            // 对端TCP发送一个RST(对端主机崩溃并重启),read返回-1
+            Fputs(recvline, stdout); // 对端TCP发送数据,read返回大于0的值
+        }
+        if (FD_ISSET(fileno(fp), &rset)) { // 标准输入可读
+            if (Fgets(sendline, MAXLINE, fp) == NULL)
+                return;
+            Writen(sockfd, sendline, strlen(sendline));
+        }
+    }
 }
